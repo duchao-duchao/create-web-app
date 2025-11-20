@@ -2,7 +2,7 @@ import { select, confirm, isCancel } from '@clack/prompts';
 
 import { generateTemplate } from '../services/template.js';
 
-export async function handleNativeMode(projectName, targetDir) {
+export async function collectNativeOptions() {
   const framework = await select({
     message: '选择技术栈',
     options: [
@@ -42,5 +42,9 @@ export async function handleNativeMode(projectName, targetDir) {
     }
   }
 
+  return { framework, plugins };
+}
+
+export async function createNativeProject({ projectName, targetDir, framework, plugins }) {
   await generateTemplate({ framework, plugins, projectName, targetDir });
 }
