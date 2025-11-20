@@ -1,3 +1,10 @@
+import {
+  injectReactRouterIntoMain,
+  wrapAppWithReduxProvider,
+  attachComponentToApp,
+} from '../services/transforms/react.js';
+import { injectVueRouterIntoMain } from '../services/transforms/vue.js';
+
 export const frameworkRegistry = {
   react: {
     label: 'React + Vite',
@@ -91,14 +98,7 @@ export const router = createBrowserRouter([
       transforms: [
         {
           file: 'src/main.jsx',
-          run(content) {
-            return content
-              .replace(
-                "import App from './App';",
-                "import App from './App';\nimport { RouterProvider } from 'react-router-dom';\nimport { router } from './router';"
-              )
-              .replace('<App />', '<RouterProvider router={router} />');
-          },
+          run: injectReactRouterIntoMain,
         },
       ],
     },
@@ -117,25 +117,28 @@ export const useCounter = create((set) => ({
   inc: () => set((state) => ({ count: state.count + 1 })),
 }));
 `,
+        'src/components/ZustandCounter.jsx': `import { useCounter } from '../store/useCounter';
+
+export default function ZustandCounter() {
+  const { count, inc } = useCounter();
+
+  return (
+    <section className="card">
+      <h2>Zustand Demo</h2>
+      <p>当前计数：{count}</p>
+      <button onClick={inc}>＋1</button>
+    </section>
+  );
+}
+`,
       },
       transforms: [
         {
           file: 'src/App.jsx',
-          run(content) {
-            return content
-              .replace(
-                "export default function App() {",
-                "export default function App() {\n  const { count, inc } = useCounter();"
-              )
-              .replace(
-                "import './App.css';",
-                "import './App.css';\nimport { useCounter } from './store/useCounter';"
-              )
-              .replace(
-                '{/* PLUGIN_SLOT */}',
-                `<p>当前计数：{count}</p>\n        <button onClick={inc}>＋1</button>`
-              );
-          },
+          run: attachComponentToApp({
+            componentName: 'ZustandCounter',
+            importPath: './components/ZustandCounter',
+          }),
         },
       ],
     },
@@ -172,44 +175,34 @@ export const store = configureStore({
   },
 });
 `,
+        'src/components/ReduxCounter.jsx': `import { useDispatch, useSelector } from 'react-redux';
+import { increment } from '../store/store';
+
+export default function ReduxCounter() {
+  const dispatch = useDispatch();
+  const value = useSelector((state) => state.counter.value);
+
+  return (
+    <section className="card">
+      <h2>Redux Demo</h2>
+      <p>当前计数：{value}</p>
+      <button onClick={() => dispatch(increment())}>＋1</button>
+    </section>
+  );
+}
+`,
       },
       transforms: [
         {
           file: 'src/main.jsx',
-          run(content) {
-            let next = content.replace(
-              "import App from './App';",
-              "import App from './App';\nimport { Provider } from 'react-redux';\nimport { store } from './store/store';"
-            );
-            const routerMarker = '<RouterProvider router={router} />';
-            if (next.includes(routerMarker)) {
-              next = next.replace(
-                routerMarker,
-                `<Provider store={store}>${routerMarker}</Provider>`
-              );
-            } else {
-              next = next.replace('<App />', '<Provider store={store}><App /></Provider>');
-            }
-            return next;
-          },
+          run: wrapAppWithReduxProvider,
         },
         {
           file: 'src/App.jsx',
-          run(content) {
-            return content
-              .replace(
-                "import './App.css';",
-                "import './App.css';\nimport { useDispatch, useSelector } from 'react-redux';\nimport { increment } from './store/store';"
-              )
-              .replace(
-                "export default function App() {",
-                "export default function App() {\n  const dispatch = useDispatch();\n  const value = useSelector((state) => state.counter.value);"
-              )
-              .replace(
-                '{/* PLUGIN_SLOT */}',
-                `<p>当前计数：{value}</p>\n        <button onClick={() => dispatch(increment())}>＋1</button>`
-              );
-          },
+          run: attachComponentToApp({
+            componentName: 'ReduxCounter',
+            importPath: './components/ReduxCounter',
+          }),
         },
       ],
     },
@@ -246,14 +239,7 @@ export const router = createRouter({
       transforms: [
         {
           file: 'src/main.js',
-          run(content) {
-            return content
-              .replace(
-                "import App from './App.vue';",
-                "import App from './App.vue';\nimport { router } from './router';"
-              )
-              .replace("createApp(App).mount('#app');", "createApp(App).use(router).mount('#app');");
-          },
+          run: injectVueRouterIntoMain,
         },
       ],
     },
