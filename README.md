@@ -9,13 +9,13 @@
 ## 快速开始
 
 ```bash
-pnpm install
-pnpm dev
+pnpm install        # 安装依赖并自动构建 dist
+pnpm dev            # 直接运行源码版本
+pnpm build          # 生产构建 dist/index.js
+pnpm release        # 构建 + npm publish（需提前登录）
 ```
 
-按照提示输入项目名、选择引擎或模版及插件即可。
-
-若想全局使用，可在发布后执行：
+按照提示输入项目名、选择引擎或模版及插件即可。若想全局使用，可在发布后执行：
 
 ```bash
 pnpm install -g create-web-app
