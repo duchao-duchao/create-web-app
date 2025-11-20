@@ -1,0 +1,18 @@
+{
+  "name": "create-web-app",
+  "version": "0.1.0",
+  "description": "多引擎可插拔的前端脚手架",
+  "type": "module",
+  "bin": {
+    "create-web-app": "src/index.js"
+  },
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "execa": "^8.0.1",
+    "fs-extra": "^11.2.0",
+    "picocolors": "^1.0.0"
+  }
+}
