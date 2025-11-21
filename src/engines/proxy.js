@@ -20,7 +20,7 @@ export async function handleProxyMode(engine, projectName) {
   if (!executor) {
     throw new Error(`暂不支持的引擎：${engine}`);
   }
-
   console.log(pc.dim(`正在调用 ${engine} 引擎...`));
-  await execa(executor.cmd, [...executor.args, projectName], { stdio: 'inherit' });
+  const cliArgs = projectName ? [...executor.args, projectName] : executor.args;
+  await execa(executor.cmd, cliArgs, { stdio: 'inherit' });
 }

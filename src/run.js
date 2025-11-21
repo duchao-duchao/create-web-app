@@ -31,6 +31,26 @@ export async function run() {
   try {
     intro(pc.bgBlue(pc.black(' create-web-app - 前端脚手架 ')));
 
+    // 第一步：选择创建引擎
+    const engine = await select({
+      message: '请选择项目创建引擎',
+      options: ENGINE_CHOICES,
+    });
+
+    if (isCancel(engine)) {
+      outro(pc.yellow('已取消创建。'));
+      process.exit(0);
+    }
+
+
+    // 外部引擎：直接代理到对应 CLI（不在本程序内收集项目名、不确认）
+    if (engine !== 'native') {
+      await handleProxyMode(engine);
+      outro(pc.green('🎉 项目创建成功，祝编码愉快！'));
+      return;
+    }
+
+    // Native 引擎：继续收集项目名与插件选项，并进行确认
     const projectNameInput = await text({
       message: '请输入项目名称',
       placeholder: 'my-app',
@@ -52,20 +72,7 @@ export async function run() {
       process.exit(1);
     }
 
-    const engine = await select({
-      message: '请选择项目创建引擎',
-      options: ENGINE_CHOICES,
-    });
-
-    if (isCancel(engine)) {
-      outro(pc.yellow('已取消创建。'));
-      process.exit(0);
-    }
-
-    let nativeOptions = null;
-    if (engine === 'native') {
-      nativeOptions = await collectNativeOptions();
-    }
+    let nativeOptions = await collectNativeOptions();
 
     const confirmed = await confirm({
       message: buildSummary({
@@ -82,16 +89,12 @@ export async function run() {
       process.exit(0);
     }
 
-    if (engine !== 'native') {
-      await handleProxyMode(engine, projectName);
-    } else {
-      await createNativeProject({
-        projectName,
-        targetDir,
-        framework: nativeOptions.framework,
-        plugins: nativeOptions.plugins,
-      });
-    }
+    await createNativeProject({
+      projectName,
+      targetDir,
+      framework: nativeOptions.framework,
+      plugins: nativeOptions.plugins,
+    });
 
     outro(pc.green('🎉 项目创建成功，祝编码愉快！'));
   } catch (error) {
