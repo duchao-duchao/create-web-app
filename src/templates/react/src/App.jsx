@@ -3,8 +3,7 @@ import './App.css';
 export default function App() {
   return (
     <main className="container">
-      <h1>React App</h1>
-      <p>通过 create-web-app 自研模版创建。</p>
+      <h1>Hi, create-web-app</h1>
       <div className="card">
         <p>你可以自由扩展插件：</p>
         <ul>

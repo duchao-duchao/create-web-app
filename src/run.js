@@ -8,7 +8,7 @@ import { collectNativeOptions, createNativeProject } from './engines/native.js';
 import { pluginRegistry, frameworkRegistry } from './config/plugin-registry.js';
 
 const ENGINE_CHOICES = [
-  { value: 'native', label: 'Native (create-web-app)' },
+  { value: 'native', label: '当前脚手架 (create-web-app)' },
   { value: 'vite', label: 'Vite (create-vite)' },
   { value: 'umi', label: 'Umi (create-umi)' },
   { value: 'cra', label: 'CRA (create-react-app)' },
