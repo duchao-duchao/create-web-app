@@ -47,10 +47,32 @@ async function applyPlugins(framework, plugins, targetDir) {
     if (!def) continue;
 
     if (def.files) {
-      for (const [relative, content] of Object.entries(def.files)) {
-        const dest = path.join(targetDir, relative);
-        await fse.ensureDir(path.dirname(dest));
-        await fs.promises.writeFile(dest, content);
+      // 支持两种形式：
+      // 1) 旧版对象映射：{ 'path/to': 'content' }
+      // 2) 新版动作数组：[{ to, from?, content?, whenExists? }]
+      if (Array.isArray(def.files)) {
+        for (const action of def.files) {
+          const { to, from, content, whenExists = 'skip' } = action;
+          if (!to) continue;
+          const dest = path.join(targetDir, to);
+          const exists = fs.existsSync(dest);
+          if (exists && whenExists === 'skip') continue;
+
+          let data = content ?? '';
+          if (from) {
+            const srcPath = path.join(TEMPLATE_ROOT, from);
+            data = await fs.promises.readFile(srcPath, 'utf8');
+          }
+
+          await fse.ensureDir(path.dirname(dest));
+          await fs.promises.writeFile(dest, data);
+        }
+      } else if (typeof def.files === 'object') {
+        for (const [relative, content] of Object.entries(def.files)) {
+          const dest = path.join(targetDir, relative);
+          await fse.ensureDir(path.dirname(dest));
+          await fs.promises.writeFile(dest, content);
+        }
       }
     }
 

@@ -68,32 +68,23 @@ export const pluginRegistry = {
           ]
         }
       },
-      files: {
-        '.eslintrc.json': JSON.stringify(
-          {
-            root: true,
-            env: { browser: true, es2021: true },
-            extends: ['eslint:recommended'],
-            parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
-            rules: {},
-          },
-          null,
-          2
-        ),
-        '.prettierrc': JSON.stringify(
-          {
-            singleQuote: true,
-            trailingComma: 'es5',
-          },
-          null,
-          2
-        ),
-        '.husky/pre-commit': `#!/usr/bin/env sh
-. "$(dirname "$0")/_/husky.sh"
-
-pnpm lint-staged
-`,
-      },
+      files: [
+        {
+          from: 'snippets/common/eslintrc.json',
+          to: '.eslintrc.json',
+          whenExists: 'skip',
+        },
+        {
+          from: 'snippets/common/prettierrc.json',
+          to: '.prettierrc',
+          whenExists: 'skip',
+        },
+        {
+          from: 'snippets/common/husky-pre-commit.sh',
+          to: '.husky/pre-commit',
+          whenExists: 'skip',
+        },
+      ],
     },
   },
   react: {
@@ -106,18 +97,13 @@ pnpm lint-staged
       pkg: {
         dependencies: { 'react-router-dom': '^6.25.1' },
       },
-      files: {
-        'src/router.jsx': `import { createBrowserRouter } from 'react-router-dom';
-import App from './App';
-
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <App />, 
-  },
-]);
-`,
-      },
+      files: [
+        {
+          from: 'snippets/react/router.jsx',
+          to: 'src/router.jsx',
+          whenExists: 'skip',
+        },
+      ],
       transforms: [
         {
           file: 'src/main.jsx',
@@ -132,29 +118,18 @@ export const router = createBrowserRouter([
         stability: 'beta',
       },
       pkg: { dependencies: { zustand: '^4.5.5' } },
-      files: {
-        'src/store/useCounter.js': `import { create } from 'zustand';
-
-export const useCounter = create((set) => ({
-  count: 0,
-  inc: () => set((state) => ({ count: state.count + 1 })),
-}));
-`,
-        'src/components/ZustandCounter.jsx': `import { useCounter } from '../store/useCounter';
-
-export default function ZustandCounter() {
-  const { count, inc } = useCounter();
-
-  return (
-    <section className="card">
-      <h2>Zustand Demo</h2>
-      <p>当前计数：{count}</p>
-      <button onClick={inc}>＋1</button>
-    </section>
-  );
-}
-`,
-      },
+      files: [
+        {
+          from: 'snippets/react/zustand-store.js',
+          to: 'src/store/useCounter.js',
+          whenExists: 'skip',
+        },
+        {
+          from: 'snippets/react/zustand-component.jsx',
+          to: 'src/components/ZustandCounter.jsx',
+          whenExists: 'skip',
+        },
+      ],
       transforms: [
         {
           file: 'src/App.jsx',
@@ -177,44 +152,18 @@ export default function ZustandCounter() {
           'react-redux': '^9.1.2',
         },
       },
-      files: {
-        'src/store/store.js': `import { configureStore, createSlice } from '@reduxjs/toolkit';
-
-const counterSlice = createSlice({
-  name: 'counter',
-  initialState: { value: 0 },
-  reducers: {
-    increment: (state) => {
-      state.value += 1;
-    },
-  },
-});
-
-export const { increment } = counterSlice.actions;
-
-export const store = configureStore({
-  reducer: {
-    counter: counterSlice.reducer,
-  },
-});
-`,
-        'src/components/ReduxCounter.jsx': `import { useDispatch, useSelector } from 'react-redux';
-import { increment } from '../store/store';
-
-export default function ReduxCounter() {
-  const dispatch = useDispatch();
-  const value = useSelector((state) => state.counter.value);
-
-  return (
-    <section className="card">
-      <h2>Redux Demo</h2>
-      <p>当前计数：{value}</p>
-      <button onClick={() => dispatch(increment())}>＋1</button>
-    </section>
-  );
-}
-`,
-      },
+      files: [
+        {
+          from: 'snippets/react/redux-store.js',
+          to: 'src/store/store.js',
+          whenExists: 'skip',
+        },
+        {
+          from: 'snippets/react/redux-component.jsx',
+          to: 'src/components/ReduxCounter.jsx',
+          whenExists: 'skip',
+        },
+      ],
       transforms: [
         {
           file: 'src/main.jsx',
@@ -240,25 +189,18 @@ export default function ReduxCounter() {
       pkg: {
         dependencies: { 'vue-router': '^4.4.3' },
       },
-      files: {
-        'src/router.js': `import { createRouter, createWebHistory } from 'vue-router';
-import Home from './views/Home.vue';
-
-export const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: Home },
-  ],
-});
-`,
-        'src/views/Home.vue': `<template>
-  <main class="container">
-    <h1>Vue App</h1>
-    <p>这是通过 vue-router 渲染的 Home 页。</p>
-  </main>
-</template>
-`,
-      },
+      files: [
+        {
+          from: 'snippets/vue/router.js',
+          to: 'src/router.js',
+          whenExists: 'skip',
+        },
+        {
+          from: 'snippets/vue/home.vue',
+          to: 'src/views/Home.vue',
+          whenExists: 'skip',
+        },
+      ],
       transforms: [
         {
           file: 'src/main.js',
@@ -291,20 +233,13 @@ export const router = createRouter({
       pkg: {
         dependencies: { vuex: '^4.1.0' },
       },
-      files: {
-        'src/store/index.js': `import { createStore } from 'vuex';
-
-export const store = createStore({
-  state() { return { count: 0 }; },
-  mutations: {
-    inc(state) { state.count += 1; }
-  },
-  actions: {
-    incAsync({ commit }) { setTimeout(() => commit('inc'), 300); }
-  }
-});
-`,
-      },
+      files: [
+        {
+          from: 'snippets/vue/vuex-store.js',
+          to: 'src/store/index.js',
+          whenExists: 'skip',
+        },
+      ],
       transforms: [
         {
           file: 'src/main.js',

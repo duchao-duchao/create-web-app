@@ -36,6 +36,14 @@ create-web-app my-app
 - `create-vite@latest`
 - `create-umi@latest`
 - `create-react-app@latest`
+- `create-next-app@latest`
+- `nuxi@latest init`
+- `create-astro@latest`
+- `create-svelte@latest`
+- `@angular/cli@latest new`
+- `create-remix@latest`
+- `create-solid@latest`
+- `create-qwik@latest`
 
 选择后会直接透传 CLI 交互，并可在任务完成后追加企业规范注入逻辑。
 

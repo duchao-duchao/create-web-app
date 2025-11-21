@@ -8,10 +8,18 @@ import { collectNativeOptions, createNativeProject } from './engines/native.js';
 import { pluginRegistry, frameworkRegistry } from './config/plugin-registry.js';
 
 const ENGINE_CHOICES = [
-  { value: 'native', label: '🚀 Native (本脚手架自研标准)' },
-  { value: 'vite', label: '⚡ Vite (create-vite)' },
-  { value: 'umi', label: '🍙 Umi (create-umi)' },
-  { value: 'cra', label: '⚛️ CRA (create-react-app，较慢)' },
+  { value: 'native', label: 'Native (create-web-app)' },
+  { value: 'vite', label: 'Vite (create-vite)' },
+  { value: 'umi', label: 'Umi (create-umi)' },
+  { value: 'cra', label: 'CRA (create-react-app)' },
+  { value: 'next', label: 'Next.js (create-next-app)' },
+  { value: 'nuxt', label: 'Nuxt (nuxi init)' },
+  { value: 'astro', label: 'Astro (create-astro)' },
+  { value: 'svelte', label: 'SvelteKit (create-svelte)' },
+  { value: 'angular', label: 'Angular (ng new)' },
+  { value: 'remix', label: 'Remix (create-remix)' },
+  { value: 'solid', label: 'Solid (create-solid)' },
+  { value: 'qwik', label: 'Qwik (create-qwik)' },
 ];
 
 const ENGINE_LABEL_MAP = ENGINE_CHOICES.reduce((acc, option) => {
@@ -21,7 +29,7 @@ const ENGINE_LABEL_MAP = ENGINE_CHOICES.reduce((acc, option) => {
 
 export async function run() {
   try {
-    intro(pc.bgBlue(pc.black(' MY-CLI - 全能前端脚手架 ')));
+    intro(pc.bgBlue(pc.black(' create-web-app - 前端脚手架 ')));
 
     const projectNameInput = await text({
       message: '请输入项目名称',
