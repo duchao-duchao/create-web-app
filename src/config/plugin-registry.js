@@ -1,13 +1,10 @@
-import {
-  injectReactRouterIntoMain,
-  wrapAppWithReduxProvider,
-  attachComponentToApp,
-} from '../services/transforms/react.js';
-import {
-  injectVueRouterIntoMain,
-  injectPiniaIntoMain,
-  injectVuexIntoMain,
-} from '../services/transforms/vue.js';
+import commonLint from './plugins/common/lint.js';
+import reactRouter from './plugins/react/router.js';
+import reactZustand from './plugins/react/zustand.js';
+import reactRedux from './plugins/react/redux.js';
+import vueRouter from './plugins/vue/router.js';
+import vuePinia from './plugins/vue/pinia.js';
+import vueVuex from './plugins/vue/vuex.js';
 
 export const frameworkRegistry = {
   react: {
@@ -41,211 +38,16 @@ export const templateRegistry = [
 
 export const pluginRegistry = {
   common: {
-    lint: {
-      meta: {
-        label: 'ESLint + Prettier',
-        description: '启用基础 ESLint 规则与 Prettier 格式化。',
-        stability: 'stable',
-      },
-      pkg: {
-        devDependencies: {
-          eslint: '^9.11.0',
-          'eslint-config-prettier': '^9.1.0',
-          prettier: '^3.3.3',
-          'lint-staged': '^15.2.0',
-          husky: '^9.0.11'
-        },
-        scripts: {
-          prepare: 'husky install'
-        },
-        'lint-staged': {
-          '*.{js,jsx,ts,tsx,vue}': [
-            'eslint --fix --max-warnings=0',
-            'prettier --write'
-          ],
-          '*.{css,scss,md,json}': [
-            'prettier --write'
-          ]
-        }
-      },
-      files: [
-        {
-          from: 'snippets/common/eslintrc.json',
-          to: '.eslintrc.json',
-          whenExists: 'skip',
-        },
-        {
-          from: 'snippets/common/prettierrc.json',
-          to: '.prettierrc',
-          whenExists: 'skip',
-        },
-        {
-          from: 'snippets/common/husky-pre-commit.sh',
-          to: '.husky/pre-commit',
-          whenExists: 'skip',
-        },
-      ],
-    },
+    lint: commonLint,
   },
   react: {
-    router: {
-      meta: {
-        label: 'React Router',
-        description: '集成 react-router-dom 6，支持浏览器路由。',
-        stability: 'stable',
-      },
-      pkg: {
-        dependencies: { 'react-router-dom': '^6.25.1' },
-      },
-      files: [
-        {
-          from: 'snippets/react/router.jsx',
-          to: 'src/router.jsx',
-          whenExists: 'skip',
-        },
-      ],
-      transforms: [
-        {
-          file: 'src/main.jsx',
-          run: injectReactRouterIntoMain,
-        },
-      ],
-    },
-    zustand: {
-      meta: {
-        label: 'Zustand',
-        description: '轻量状态管理，提供计数器示例。',
-        stability: 'beta',
-      },
-      pkg: { dependencies: { zustand: '^4.5.5' } },
-      files: [
-        {
-          from: 'snippets/react/zustand-store.js',
-          to: 'src/store/useCounter.js',
-          whenExists: 'skip',
-        },
-        {
-          from: 'snippets/react/zustand-component.jsx',
-          to: 'src/components/ZustandCounter.jsx',
-          whenExists: 'skip',
-        },
-      ],
-      transforms: [
-        {
-          file: 'src/App.jsx',
-          run: attachComponentToApp({
-            componentName: 'ZustandCounter',
-            importPath: './components/ZustandCounter',
-          }),
-        },
-      ],
-    },
-    redux: {
-      meta: {
-        label: 'Redux Toolkit',
-        description: '注入 Redux Toolkit + react-redux，适合复杂状态场景。',
-        stability: 'stable',
-      },
-      pkg: {
-        dependencies: {
-          '@reduxjs/toolkit': '^2.2.7',
-          'react-redux': '^9.1.2',
-        },
-      },
-      files: [
-        {
-          from: 'snippets/react/redux-store.js',
-          to: 'src/store/store.js',
-          whenExists: 'skip',
-        },
-        {
-          from: 'snippets/react/redux-component.jsx',
-          to: 'src/components/ReduxCounter.jsx',
-          whenExists: 'skip',
-        },
-      ],
-      transforms: [
-        {
-          file: 'src/main.jsx',
-          run: wrapAppWithReduxProvider,
-        },
-        {
-          file: 'src/App.jsx',
-          run: attachComponentToApp({
-            componentName: 'ReduxCounter',
-            importPath: './components/ReduxCounter',
-          }),
-        },
-      ],
-    },
+    router: reactRouter,
+    zustand: reactZustand,
+    redux: reactRedux,
   },
   vue: {
-    router: {
-      meta: {
-        label: 'Vue Router',
-        description: '集成 vue-router 4，创建基础路由配置。',
-        stability: 'stable',
-      },
-      pkg: {
-        dependencies: { 'vue-router': '^4.4.3' },
-      },
-      files: [
-        {
-          from: 'snippets/vue/router.js',
-          to: 'src/router.js',
-          whenExists: 'skip',
-        },
-        {
-          from: 'snippets/vue/home.vue',
-          to: 'src/views/Home.vue',
-          whenExists: 'skip',
-        },
-      ],
-      transforms: [
-        {
-          file: 'src/main.js',
-          run: injectVueRouterIntoMain,
-        },
-      ],
-    },
-    pinia: {
-      meta: {
-        label: 'Pinia',
-        description: '集成 Pinia 状态管理，在入口中挂载。',
-        stability: 'stable',
-      },
-      pkg: {
-        dependencies: { pinia: '^2.2.4' },
-      },
-      transforms: [
-        {
-          file: 'src/main.js',
-          run: injectPiniaIntoMain,
-        },
-      ],
-    },
-    vuex: {
-      meta: {
-        label: 'Vuex 4',
-        description: '集成 Vuex 状态管理，生成基础 store 并挂载。',
-        stability: 'stable',
-      },
-      pkg: {
-        dependencies: { vuex: '^4.1.0' },
-      },
-      files: [
-        {
-          from: 'snippets/vue/vuex-store.js',
-          to: 'src/store/index.js',
-          whenExists: 'skip',
-        },
-      ],
-      transforms: [
-        {
-          file: 'src/main.js',
-          run: injectVuexIntoMain,
-        },
-      ],
-    },
+    router: vueRouter,
+    pinia: vuePinia,
+    vuex: vueVuex,
   },
 };
