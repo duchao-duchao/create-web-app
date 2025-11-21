@@ -81,6 +81,7 @@ export async function run() {
         engine,
         framework: nativeOptions?.framework,
         plugins: nativeOptions?.plugins ?? [],
+        language: nativeOptions?.language,
       }),
     });
 
@@ -94,6 +95,7 @@ export async function run() {
       targetDir,
       framework: nativeOptions.framework,
       plugins: nativeOptions.plugins,
+      language: nativeOptions.language,
     });
 
     outro(pc.green('🎉 项目创建成功，祝编码愉快！'));
@@ -103,7 +105,7 @@ export async function run() {
   }
 }
 
-function buildSummary({ projectName, targetDir, engine, framework, plugins }) {
+function buildSummary({ projectName, targetDir, engine, framework, plugins, language }) {
   const lines = [
     `项目名称：${projectName}`,
     `目标路径：${targetDir}`,
@@ -113,6 +115,7 @@ function buildSummary({ projectName, targetDir, engine, framework, plugins }) {
   if (engine === 'native') {
     const frameworkLabel = frameworkRegistry[framework]?.label ?? framework;
     lines.push(`使用模版：${frameworkLabel}`);
+    if (language) lines.push(`语言：${language === 'ts' ? 'TypeScript' : 'JavaScript'}`);
     lines.push(`启用插件：${formatPluginList(framework, plugins)}`);
   } else {
     lines.push('使用模版：由外部引擎决定');

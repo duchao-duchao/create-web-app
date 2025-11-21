@@ -17,6 +17,20 @@ export async function collectNativeOptions() {
 
   const plugins = [];
 
+  // 语言选择：JS 或 TS
+  const language = await select({
+    message: '选择语言',
+    options: [
+      { value: 'js', label: 'JavaScript' },
+      { value: 'ts', label: 'TypeScript' },
+    ],
+    initialValue: 'js',
+  });
+
+  if (isCancel(language)) {
+    throw new Error('未选择语言，流程中止');
+  }
+
   const useRouter = await confirm({ message: '是否安装路由（Router）？' });
   if (!isCancel(useRouter) && useRouter) plugins.push('router');
 
@@ -61,9 +75,9 @@ export async function collectNativeOptions() {
     }
   }
 
-  return { framework, plugins };
+  return { framework, plugins, language };
 }
 
-export async function createNativeProject({ projectName, targetDir, framework, plugins }) {
-  await generateTemplate({ framework, plugins, projectName, targetDir });
+export async function createNativeProject({ projectName, targetDir, framework, plugins, language }) {
+  await generateTemplate({ framework, plugins, projectName, targetDir, language });
 }

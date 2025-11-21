@@ -6,7 +6,7 @@ import pc from 'picocolors';
 import { TEMPLATE_ROOT } from '../utils/paths.js';
 import { pluginRegistry } from '../config/plugin-registry.js';
 
-export async function generateTemplate({ framework, plugins, projectName, targetDir }) {
+export async function generateTemplate({ framework, plugins, projectName, targetDir, language = 'js' }) {
   const templateDir = path.join(TEMPLATE_ROOT, framework);
   if (!fs.existsSync(templateDir)) {
     throw new Error(`缺少 ${framework} 模版，请检查 templates 目录`);
@@ -15,6 +15,7 @@ export async function generateTemplate({ framework, plugins, projectName, target
   await fse.copy(templateDir, targetDir);
   await patchPackageJson(targetDir, framework, projectName, plugins);
   await applyPlugins(framework, plugins, targetDir);
+  await applyLanguageAdjustments({ framework, targetDir, language });
 
   console.log(pc.green(`\n✅ 已生成 ${framework} 模版，位置：${projectName}`));
   if (plugins.length) {
@@ -102,4 +103,99 @@ function mergePackageFields(target, source = {}, fields = []) {
     }
   }
   return target;
+}
+
+async function applyLanguageAdjustments({ framework, targetDir, language }) {
+  if (language !== 'ts') return;
+
+  // 1) 追加 TypeScript 相关依赖
+  const pkgPath = path.join(targetDir, 'package.json');
+  const pkg = JSON.parse(await fs.promises.readFile(pkgPath, 'utf8'));
+  pkg.devDependencies = {
+    ...(pkg.devDependencies || {}),
+    typescript: pkg.devDependencies?.typescript ?? '^5.6.3',
+  };
+  if (framework === 'react') {
+    pkg.devDependencies['@types/react'] = pkg.devDependencies['@types/react'] ?? '^18.3.11';
+    pkg.devDependencies['@types/react-dom'] = pkg.devDependencies['@types/react-dom'] ?? '^18.3.0';
+  }
+  await fs.promises.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+
+  // 2) tsconfig.json
+  const tsconfig = framework === 'react'
+    ? {
+        compilerOptions: {
+          target: 'ES2020',
+          useDefineForClassFields: true,
+          lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+          module: 'ESNext',
+          skipLibCheck: true,
+          moduleResolution: 'bundler',
+          resolveJsonModule: true,
+          isolatedModules: true,
+          jsx: 'react-jsx'
+        },
+        include: ['src']
+      }
+    : {
+        compilerOptions: {
+          target: 'ES2020',
+          lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+          module: 'ESNext',
+          skipLibCheck: true,
+          moduleResolution: 'bundler',
+          resolveJsonModule: true,
+          isolatedModules: true
+        },
+        include: ['src']
+      };
+  await fs.promises.writeFile(path.join(targetDir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
+
+  // 3) 文件扩展名与入口修改
+  const rename = async (fromRel, toRel) => {
+    const from = path.join(targetDir, fromRel);
+    const to = path.join(targetDir, toRel);
+    if (fs.existsSync(from)) {
+      await fse.ensureDir(path.dirname(to));
+      await fs.promises.rename(from, to);
+    }
+  };
+
+  if (framework === 'react') {
+    await rename('src/main.jsx', 'src/main.tsx');
+    await rename('src/App.jsx', 'src/App.tsx');
+    await rename('src/components/ZustandCounter.jsx', 'src/components/ZustandCounter.tsx');
+    await rename('src/components/ReduxCounter.jsx', 'src/components/ReduxCounter.tsx');
+    await rename('src/store/useCounter.js', 'src/store/useCounter.ts');
+    await rename('src/store/store.js', 'src/store/store.ts');
+
+    // index.html 入口修正
+    const indexHtmlPath = path.join(targetDir, 'index.html');
+    if (fs.existsSync(indexHtmlPath)) {
+      const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
+      const nextHtml = html.replace('/src/main.jsx', '/src/main.tsx');
+      await fs.promises.writeFile(indexHtmlPath, nextHtml);
+    }
+  }
+
+  if (framework === 'vue') {
+    await rename('src/main.js', 'src/main.ts');
+    await rename('src/router.js', 'src/router.ts');
+    await rename('src/store/index.js', 'src/store/index.ts');
+
+    // index.html 入口修正
+    const indexHtmlPath = path.join(targetDir, 'index.html');
+    if (fs.existsSync(indexHtmlPath)) {
+      const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
+      const nextHtml = html.replace('/src/main.js', '/src/main.ts');
+      await fs.promises.writeFile(indexHtmlPath, nextHtml);
+    }
+
+    // 声明 .vue 模块，避免编辑器类型报错
+    const dtsPath = path.join(targetDir, 'src', 'vite-env.d.ts');
+    const dts = `/// <reference types="vite/client" />
+declare module '*.vue' { const component: any; export default component; }`;
+    await fse.ensureDir(path.dirname(dtsPath));
+    await fs.promises.writeFile(dtsPath, dts);
+  }
 }
