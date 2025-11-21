@@ -27,12 +27,12 @@ const ENGINE_LABEL_MAP = ENGINE_CHOICES.reduce((acc, option) => {
   return acc;
 }, {});
 
-export async function run() {
+export async function run(cliOverrides = {}) {
   try {
     intro(pc.bgBlue(pc.black(' create-web-app - 前端脚手架 ')));
 
-    // 第一步：选择创建引擎
-    const engine = await select({
+    // 第一步：选择创建引擎（支持 CLI 直达）
+    const engine = cliOverrides.engine ?? await select({
       message: '请选择项目创建引擎',
       options: ENGINE_CHOICES,
     });
@@ -43,15 +43,15 @@ export async function run() {
     }
 
 
-    // 外部引擎：直接代理到对应 CLI（不在本程序内收集项目名、不确认）
+    // 外部引擎：直接代理到对应 CLI（支持传递项目名与模板）
     if (engine !== 'native') {
-      await handleProxyMode(engine);
+      await handleProxyMode(engine, cliOverrides.projectName, { framework: cliOverrides.framework });
       outro(pc.green('🎉 项目创建成功，祝编码愉快！'));
       return;
     }
 
     // Native 引擎：继续收集项目名与插件选项，并进行确认
-    const projectNameInput = await text({
+    const projectNameInput = cliOverrides.projectName ?? await text({
       message: '请输入项目名称',
       placeholder: 'my-app',
       validate(value) {
@@ -72,20 +72,87 @@ export async function run() {
       process.exit(1);
     }
 
-    let nativeOptions = await collectNativeOptions();
+    // 收集/合并选项：支持 CLI 覆盖
+    let framework = cliOverrides.framework;
+    let language = cliOverrides.language;
+    let plugins = Array.isArray(cliOverrides.plugins) ? [...new Set(cliOverrides.plugins)] : undefined;
 
-    const confirmed = await confirm({
-      message: buildSummary({
-        projectName,
-        targetDir,
-        engine,
-        framework: nativeOptions?.framework,
-        plugins: nativeOptions?.plugins ?? [],
-        language: nativeOptions?.language,
-      }),
-    });
+    if (!framework || !language || !plugins) {
+      // 框架
+      framework = framework ?? await select({
+        message: '选择技术栈',
+        options: [
+          { value: 'react', label: 'React' },
+          { value: 'vue', label: 'Vue' },
+        ],
+      });
+      if (isCancel(framework)) throw new Error('未选择技术栈，流程中止');
 
-    if (isCancel(confirmed) || confirmed === false) {
+      // 语言
+      language = language ?? await select({
+        message: '选择语言',
+        options: [
+          { value: 'js', label: 'JavaScript' },
+          { value: 'ts', label: 'TypeScript' },
+        ],
+        initialValue: 'js',
+      });
+      if (isCancel(language)) throw new Error('未选择语言，流程中止');
+
+      // 插件（若未通过 CLI 指定）
+      if (!plugins) {
+        plugins = [];
+        const useRouter = await confirm({ message: '是否安装路由（Router）？' });
+        if (!isCancel(useRouter) && useRouter) plugins.push('router');
+
+        const useLint = await confirm({ message: '是否配置 ESLint + Prettier？' });
+        if (!isCancel(useLint) && useLint) plugins.push('lint');
+
+        if (framework === 'react') {
+          const stateManager = await select({
+            message: '选择状态管理方案',
+            options: [
+              { value: 'none', label: '不需要' },
+              { value: 'zustand', label: 'Zustand (推荐)' },
+              { value: 'redux', label: 'Redux Toolkit' },
+            ],
+          });
+          if (isCancel(stateManager)) throw new Error('未选择状态管理，流程中止');
+          if (stateManager !== 'none') plugins.push(stateManager);
+        }
+
+        if (framework === 'vue') {
+          const vueStateManager = await select({
+            message: '选择状态管理方案',
+            options: [
+              { value: 'none', label: '不需要' },
+              { value: 'pinia', label: 'Pinia (推荐)' },
+              { value: 'vuex', label: 'Vuex 4' },
+            ],
+          });
+          if (isCancel(vueStateManager)) throw new Error('未选择状态管理，流程中止');
+          if (vueStateManager !== 'none') plugins.push(vueStateManager);
+        }
+      }
+    }
+
+    const nativeOptions = { framework, plugins: plugins ?? [], language: language ?? 'js' };
+
+    let proceed = true;
+    if (!cliOverrides.skipConfirm) {
+      const confirmed = await confirm({
+        message: buildSummary({
+          projectName,
+          targetDir,
+          engine,
+          framework: nativeOptions?.framework,
+          plugins: nativeOptions?.plugins ?? [],
+          language: nativeOptions?.language,
+        }),
+      });
+      proceed = !(isCancel(confirmed) || confirmed === false);
+    }
+    if (!proceed) {
       outro(pc.yellow('已取消创建。'));
       process.exit(0);
     }

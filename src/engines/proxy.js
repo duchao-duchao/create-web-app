@@ -15,12 +15,17 @@ const mappings = {
   qwik: { cmd: 'pnpm', args: ['create', 'qwik@latest'] },
 };
 
-export async function handleProxyMode(engine, projectName) {
+export async function handleProxyMode(engine, projectName, opts = {}) {
   const executor = mappings[engine];
   if (!executor) {
     throw new Error(`暂不支持的引擎：${engine}`);
   }
   console.log(pc.dim(`正在调用 ${engine} 引擎...`));
-  const cliArgs = projectName ? [...executor.args, projectName] : executor.args;
+  let cliArgs = projectName ? [...executor.args, projectName] : [...executor.args];
+  // 透传常用模板参数（当前仅对 Vite 支持）
+  if (engine === 'vite' && opts.framework) {
+    // 通过 -- 传递给下游脚手架，避免 pnpm 自身解析
+    cliArgs = [...cliArgs, '--', '--template', opts.framework];
+  }
   await execa(executor.cmd, cliArgs, { stdio: 'inherit' });
 }
