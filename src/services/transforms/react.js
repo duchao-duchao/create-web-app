@@ -10,6 +10,7 @@ import {
 
 const traverse = traverseModule.default ?? traverseModule;
 
+// 在 React 入口中用 <RouterProvider router={router} /> 替换 <App />，注入路由
 export function injectReactRouterIntoMain(code) {
   const ast = parseJsx(code);
 
@@ -36,6 +37,7 @@ export function injectReactRouterIntoMain(code) {
   return printAst(ast);
 }
 
+// 将 App 或 RouterProvider 用 Redux Provider 包裹，注入 Redux store
 export function wrapAppWithReduxProvider(code) {
   const ast = parseJsx(code);
 
@@ -68,6 +70,7 @@ export function wrapAppWithReduxProvider(code) {
   return printAst(ast);
 }
 
+// 向 App 组件中插入一个示例组件（并确保默认导入），用于演示或功能注入
 export function attachComponentToApp({ componentName, importPath }) {
   return function attachComponent(code) {
     const ast = parseJsx(code);
@@ -96,6 +99,7 @@ export function attachComponentToApp({ componentName, importPath }) {
   };
 }
 
+// 在函数式 App 组件的返回 JSX 中插入子组件
 function injectComponentIntoFunction(fnNode, componentName) {
   const bodyStatements = fnNode.body.body;
   for (const statement of bodyStatements) {
@@ -114,6 +118,7 @@ function injectComponentIntoFunction(fnNode, componentName) {
   return false;
 }
 
+// 解析并获取 App 组件的函数定义（支持函数声明与变量定义的函数/箭头函数）
 function resolveAppFunction(declaration, path) {
   if (t.isFunctionDeclaration(declaration) && declaration.id?.name === 'App') {
     return declaration;
@@ -137,6 +142,7 @@ function resolveAppFunction(declaration, path) {
   return null;
 }
 
+// 将箭头函数规范化为 FunctionExpression，便于统一处理
 function normalizeFunction(node) {
   if (t.isFunctionExpression(node)) return node;
   if (t.isArrowFunctionExpression(node)) {
@@ -149,6 +155,7 @@ function normalizeFunction(node) {
   return null;
 }
 
+// 在 JSX 根节点下追加一个组件元素，并保持基本缩进
 function appendComponentChild(root, componentName) {
   if (!root.children) {
     root.children = [];
@@ -167,6 +174,7 @@ function appendComponentChild(root, componentName) {
   root.children.push(indent, newElement, closingIndent);
 }
 
+// 递归检查 JSX 树中是否已包含指定组件，避免重复插入
 function jsxContainsComponent(node, componentName) {
   if (t.isJSXElement(node) && isJsxIdentifier(node.openingElement.name, componentName)) {
     return true;
@@ -187,6 +195,7 @@ function jsxContainsComponent(node, componentName) {
   });
 }
 
+// 生成 <RouterProvider router={router} /> JSX 节点
 function createRouterProviderElement() {
   return t.jsxElement(
     t.jsxOpeningElement(
@@ -205,6 +214,7 @@ function createRouterProviderElement() {
   );
 }
 
+// 生成 <Provider store={store}>{child}</Provider> JSX 包裹结构
 function createProviderWrapper(child = createAppElement()) {
   return t.jsxElement(
     t.jsxOpeningElement(
@@ -221,6 +231,7 @@ function createProviderWrapper(child = createAppElement()) {
   );
 }
 
+// 生成 <App /> JSX 节点
 function createAppElement() {
   return t.jsxElement(
     t.jsxOpeningElement(t.jsxIdentifier('App'), [], true),
@@ -230,6 +241,7 @@ function createAppElement() {
   );
 }
 
+// 判断给定 JSX 标识符名称是否匹配
 function isJsxIdentifier(node, name) {
   return t.isJSXIdentifier(node, { name });
 }

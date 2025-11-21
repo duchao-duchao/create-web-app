@@ -1,5 +1,5 @@
 import { parse } from '@babel/parser';
-import { generate } from '@babel/generator';
+import generateModule from '@babel/generator';
 import * as t from '@babel/types';
 
 const JSX_PLUGINS = ['jsx'];
@@ -20,6 +20,7 @@ export function parseJs(code) {
 }
 
 export function printAst(ast) {
+  const generate = generateModule.default ?? generateModule;
   return generate(ast, { retainLines: true }).code;
 }
 

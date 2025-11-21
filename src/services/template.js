@@ -30,19 +30,14 @@ async function patchPackageJson(targetDir, framework, projectName, plugins) {
   const pkgPath = path.join(targetDir, 'package.json');
   const pkg = JSON.parse(await fs.promises.readFile(pkgPath, 'utf8'));
   pkg.name = projectName;
-
-  const pluginDeps = plugins.reduce(
-    (acc, plugin) => {
-      const def = pluginRegistry[framework]?.[plugin] || pluginRegistry.common[plugin];
-      if (def?.pkg) {
-        mergeDependencies(acc, def.pkg);
-      }
-      return acc;
-    },
-    { dependencies: {}, devDependencies: {} }
-  );
-
-  mergeDependencies(pkg, pluginDeps);
+  // 合并依赖、脚本与 lint-staged 配置
+  for (const plugin of plugins) {
+    const def = pluginRegistry[framework]?.[plugin] || pluginRegistry.common[plugin];
+    if (!def?.pkg) continue;
+    mergePackageFields(pkg, def.pkg, ['dependencies', 'devDependencies']);
+    mergePackageFields(pkg, def.pkg, ['scripts']);
+    mergePackageFields(pkg, def.pkg, ['lint-staged']);
+  }
   await fs.promises.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 }
 
@@ -70,14 +65,19 @@ async function applyPlugins(framework, plugins, targetDir) {
   }
 }
 
-function mergeDependencies(target, source = {}) {
+function mergePackageFields(target, source = {}, fields = []) {
   if (!source) return target;
-  for (const field of ['dependencies', 'devDependencies']) {
-    if (!source[field]) continue;
-    target[field] = {
-      ...(target[field] || {}),
-      ...source[field],
-    };
+  for (const field of fields) {
+    if (source[field] === undefined) continue;
+    const srcVal = source[field];
+    if (srcVal && typeof srcVal === 'object' && !Array.isArray(srcVal)) {
+      target[field] = {
+        ...(target[field] || {}),
+        ...srcVal,
+      };
+    } else {
+      target[field] = srcVal;
+    }
   }
   return target;
 }

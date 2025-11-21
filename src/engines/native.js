@@ -42,6 +42,25 @@ export async function collectNativeOptions() {
     }
   }
 
+  if (framework === 'vue') {
+    const vueStateManager = await select({
+      message: '选择状态管理方案',
+      options: [
+        { value: 'none', label: '不需要' },
+        { value: 'pinia', label: 'Pinia (推荐)' },
+        { value: 'vuex', label: 'Vuex 4' },
+      ],
+    });
+
+    if (isCancel(vueStateManager)) {
+      throw new Error('未选择状态管理，流程中止');
+    }
+
+    if (vueStateManager !== 'none') {
+      plugins.push(vueStateManager);
+    }
+  }
+
   return { framework, plugins };
 }
 

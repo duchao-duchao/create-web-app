@@ -3,7 +3,11 @@ import {
   wrapAppWithReduxProvider,
   attachComponentToApp,
 } from '../services/transforms/react.js';
-import { injectVueRouterIntoMain } from '../services/transforms/vue.js';
+import {
+  injectVueRouterIntoMain,
+  injectPiniaIntoMain,
+  injectVuexIntoMain,
+} from '../services/transforms/vue.js';
 
 export const frameworkRegistry = {
   react: {
@@ -48,7 +52,21 @@ export const pluginRegistry = {
           eslint: '^9.11.0',
           'eslint-config-prettier': '^9.1.0',
           prettier: '^3.3.3',
+          'lint-staged': '^15.2.0',
+          husky: '^9.0.11'
         },
+        scripts: {
+          prepare: 'husky install'
+        },
+        'lint-staged': {
+          '*.{js,jsx,ts,tsx,vue}': [
+            'eslint --fix --max-warnings=0',
+            'prettier --write'
+          ],
+          '*.{css,scss,md,json}': [
+            'prettier --write'
+          ]
+        }
       },
       files: {
         '.eslintrc.json': JSON.stringify(
@@ -70,6 +88,11 @@ export const pluginRegistry = {
           null,
           2
         ),
+        '.husky/pre-commit': `#!/usr/bin/env sh
+. "$(dirname "$0")/_/husky.sh"
+
+pnpm lint-staged
+`,
       },
     },
   },
@@ -240,6 +263,52 @@ export const router = createRouter({
         {
           file: 'src/main.js',
           run: injectVueRouterIntoMain,
+        },
+      ],
+    },
+    pinia: {
+      meta: {
+        label: 'Pinia',
+        description: '集成 Pinia 状态管理，在入口中挂载。',
+        stability: 'stable',
+      },
+      pkg: {
+        dependencies: { pinia: '^2.2.4' },
+      },
+      transforms: [
+        {
+          file: 'src/main.js',
+          run: injectPiniaIntoMain,
+        },
+      ],
+    },
+    vuex: {
+      meta: {
+        label: 'Vuex 4',
+        description: '集成 Vuex 状态管理，生成基础 store 并挂载。',
+        stability: 'stable',
+      },
+      pkg: {
+        dependencies: { vuex: '^4.1.0' },
+      },
+      files: {
+        'src/store/index.js': `import { createStore } from 'vuex';
+
+export const store = createStore({
+  state() { return { count: 0 }; },
+  mutations: {
+    inc(state) { state.count += 1; }
+  },
+  actions: {
+    incAsync({ commit }) { setTimeout(() => commit('inc'), 300); }
+  }
+});
+`,
+      },
+      transforms: [
+        {
+          file: 'src/main.js',
+          run: injectVuexIntoMain,
         },
       ],
     },
