@@ -6,16 +6,17 @@ import pc from 'picocolors';
 import { TEMPLATE_ROOT } from '../utils/paths.js';
 import { pluginRegistry } from '../config/plugin-registry.js';
 
-export async function generateTemplate({ framework, plugins, projectName, targetDir, language = 'js' }) {
+export async function generateTemplate({ framework, plugins, projectName, targetDir, language = 'js', bundler = 'vite' }) {
   const templateDir = path.join(TEMPLATE_ROOT, framework);
   if (!fs.existsSync(templateDir)) {
     throw new Error(`缺少 ${framework} 模版，请检查 templates 目录`);
   }
 
   await fse.copy(templateDir, targetDir);
-  await patchPackageJson(targetDir, framework, projectName, plugins);
-  await applyPlugins(framework, plugins, targetDir);
-  await applyLanguageAdjustments({ framework, targetDir, language });
+  const context = { framework, language, bundler };
+  await patchPackageJson(targetDir, framework, projectName, plugins, context);
+  await applyPlugins(framework, plugins, targetDir, context);
+  await applyLanguageAdjustments({ framework, targetDir, language, bundler });
 
   console.log(pc.green(`\n✅ 已生成 ${framework} 模版，位置：${projectName}`));
   if (plugins.length) {
@@ -27,7 +28,7 @@ export async function generateTemplate({ framework, plugins, projectName, target
   console.log(pc.dim('  pnpm dev'));
 }
 
-async function patchPackageJson(targetDir, framework, projectName, plugins) {
+async function patchPackageJson(targetDir, framework, projectName, plugins, context) {
   const pkgPath = path.join(targetDir, 'package.json');
   const pkg = JSON.parse(await fs.promises.readFile(pkgPath, 'utf8'));
   pkg.name = projectName;
@@ -35,14 +36,15 @@ async function patchPackageJson(targetDir, framework, projectName, plugins) {
   for (const plugin of plugins) {
     const def = pluginRegistry[framework]?.[plugin] || pluginRegistry.common[plugin];
     if (!def?.pkg) continue;
-    mergePackageFields(pkg, def.pkg, ['dependencies', 'devDependencies']);
-    mergePackageFields(pkg, def.pkg, ['scripts']);
-    mergePackageFields(pkg, def.pkg, ['lint-staged']);
+    const srcPkg = typeof def.pkg === 'function' ? def.pkg(context) : def.pkg;
+    mergePackageFields(pkg, srcPkg, ['dependencies', 'devDependencies']);
+    mergePackageFields(pkg, srcPkg, ['scripts']);
+    mergePackageFields(pkg, srcPkg, ['lint-staged']);
   }
   await fs.promises.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 }
 
-async function applyPlugins(framework, plugins, targetDir) {
+async function applyPlugins(framework, plugins, targetDir, context) {
   for (const plugin of plugins) {
     const def = pluginRegistry[framework]?.[plugin] || pluginRegistry.common[plugin];
     if (!def) continue;
@@ -60,7 +62,9 @@ async function applyPlugins(framework, plugins, targetDir) {
           if (exists && whenExists === 'skip') continue;
 
           let data = content ?? '';
-          if (from) {
+          if (typeof content === 'function') {
+            data = await content(context);
+          } else if (from) {
             const srcPath = path.join(TEMPLATE_ROOT, from);
             data = await fs.promises.readFile(srcPath, 'utf8');
           }
@@ -71,8 +75,9 @@ async function applyPlugins(framework, plugins, targetDir) {
       } else if (typeof def.files === 'object') {
         for (const [relative, content] of Object.entries(def.files)) {
           const dest = path.join(targetDir, relative);
+          const data = typeof content === 'function' ? await content(context) : content;
           await fse.ensureDir(path.dirname(dest));
-          await fs.promises.writeFile(dest, content);
+          await fs.promises.writeFile(dest, data);
         }
       }
     }
@@ -81,7 +86,7 @@ async function applyPlugins(framework, plugins, targetDir) {
       for (const transform of def.transforms) {
         const filePath = path.join(targetDir, transform.file);
         const raw = await fs.promises.readFile(filePath, 'utf8');
-        const next = await transform.run(raw);
+        const next = await transform.run(raw, context);
         await fs.promises.writeFile(filePath, next);
       }
     }
@@ -105,7 +110,7 @@ function mergePackageFields(target, source = {}, fields = []) {
   return target;
 }
 
-async function applyLanguageAdjustments({ framework, targetDir, language }) {
+async function applyLanguageAdjustments({ framework, targetDir, language, bundler }) {
   if (language !== 'ts') return;
 
   // 1) 追加 TypeScript 相关依赖
@@ -130,7 +135,7 @@ async function applyLanguageAdjustments({ framework, targetDir, language }) {
           lib: ['ES2020', 'DOM', 'DOM.Iterable'],
           module: 'ESNext',
           skipLibCheck: true,
-          moduleResolution: 'bundler',
+          moduleResolution: bundler === 'webpack' ? 'node' : 'bundler',
           resolveJsonModule: true,
           isolatedModules: true,
           jsx: 'react-jsx'
@@ -143,7 +148,7 @@ async function applyLanguageAdjustments({ framework, targetDir, language }) {
           lib: ['ES2020', 'DOM', 'DOM.Iterable'],
           module: 'ESNext',
           skipLibCheck: true,
-          moduleResolution: 'bundler',
+          moduleResolution: bundler === 'webpack' ? 'node' : 'bundler',
           resolveJsonModule: true,
           isolatedModules: true
         },
@@ -169,12 +174,14 @@ async function applyLanguageAdjustments({ framework, targetDir, language }) {
     await rename('src/store/useCounter.js', 'src/store/useCounter.ts');
     await rename('src/store/store.js', 'src/store/store.ts');
 
-    // index.html 入口修正
-    const indexHtmlPath = path.join(targetDir, 'index.html');
-    if (fs.existsSync(indexHtmlPath)) {
-      const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
-      const nextHtml = html.replace('/src/main.jsx', '/src/main.tsx');
-      await fs.promises.writeFile(indexHtmlPath, nextHtml);
+    // index.html 入口修正（Webpack 下由 HtmlWebpackPlugin 注入，不修改）
+    if (bundler !== 'webpack') {
+      const indexHtmlPath = path.join(targetDir, 'index.html');
+      if (fs.existsSync(indexHtmlPath)) {
+        const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
+        const nextHtml = html.replace('/src/main.jsx', '/src/main.tsx');
+        await fs.promises.writeFile(indexHtmlPath, nextHtml);
+      }
     }
   }
 
@@ -183,17 +190,21 @@ async function applyLanguageAdjustments({ framework, targetDir, language }) {
     await rename('src/router.js', 'src/router.ts');
     await rename('src/store/index.js', 'src/store/index.ts');
 
-    // index.html 入口修正
-    const indexHtmlPath = path.join(targetDir, 'index.html');
-    if (fs.existsSync(indexHtmlPath)) {
-      const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
-      const nextHtml = html.replace('/src/main.js', '/src/main.ts');
-      await fs.promises.writeFile(indexHtmlPath, nextHtml);
+    // index.html 入口修正（Webpack 下由 HtmlWebpackPlugin 注入，不修改）
+    if (bundler !== 'webpack') {
+      const indexHtmlPath = path.join(targetDir, 'index.html');
+      if (fs.existsSync(indexHtmlPath)) {
+        const html = await fs.promises.readFile(indexHtmlPath, 'utf8');
+        const nextHtml = html.replace('/src/main.js', '/src/main.ts');
+        await fs.promises.writeFile(indexHtmlPath, nextHtml);
+      }
     }
 
-    // 声明 .vue 模块，避免编辑器类型报错
-    const dtsPath = path.join(targetDir, 'src', 'vite-env.d.ts');
-    const dts = `/// <reference types="vite/client" />
+    // 声明 .vue 模块，避免编辑器类型报错（Webpack 使用通用 env.d.ts；Vite 使用 vite-env.d.ts）
+    const dtsPath = path.join(targetDir, 'src', bundler === 'webpack' ? 'env.d.ts' : 'vite-env.d.ts');
+    const dts = bundler === 'webpack'
+      ? `declare module '*.vue' { const component: any; export default component; }`
+      : `/// <reference types="vite/client" />
 declare module '*.vue' { const component: any; export default component; }`;
     await fse.ensureDir(path.dirname(dtsPath));
     await fs.promises.writeFile(dtsPath, dts);

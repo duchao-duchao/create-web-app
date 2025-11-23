@@ -23,7 +23,8 @@ program
   .option('--engine <engine>', '指定创建引擎 (native|vite|umi|...)')
   .option('--framework <framework>', '指定框架 (react|vue)')
   .option('--plugins <list>', '启用插件列表，逗号分隔 (如: router,lint,zustand)')
-  .option('--language <lang>', '指定语言 (js|ts)');
+  .option('--language <lang>', '指定语言 (js|ts)')
+  .option('--bundler <bundler>', '指定打包器 (vite|webpack)');
 
 program.parse(process.argv);
 
@@ -46,13 +47,14 @@ const parsedPlugins = typeof opts.plugins === 'string'
   : undefined;
 
 // 原生引擎直达：提供任意参数则跳过交互确认
-if (projectNameArg || opts.engine === 'native' || opts.framework || parsedPlugins || opts.language) {
+if (projectNameArg || opts.engine === 'native' || opts.framework || parsedPlugins || opts.language || opts.bundler) {
   await run({
     projectName: projectNameArg,
     engine: 'native',
     framework: opts.framework,
     plugins: parsedPlugins,
     language: opts.language,
+    bundler: opts.bundler,
     skipConfirm: true,
   });
   process.exit(0);

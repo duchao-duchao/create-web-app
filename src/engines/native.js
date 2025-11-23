@@ -75,9 +75,22 @@ export async function collectNativeOptions() {
     }
   }
 
-  return { framework, plugins, language };
+  // 打包器选择
+  const bundler = await select({
+    message: '选择打包器',
+    options: [
+      { value: 'vite', label: 'Vite' },
+      { value: 'webpack', label: 'Webpack' },
+    ],
+    initialValue: 'vite',
+  });
+  if (isCancel(bundler)) {
+    throw new Error('未选择打包器，流程中止');
+  }
+
+  return { framework, plugins, language, bundler };
 }
 
-export async function createNativeProject({ projectName, targetDir, framework, plugins, language }) {
-  await generateTemplate({ framework, plugins, projectName, targetDir, language });
+export async function createNativeProject({ projectName, targetDir, framework, plugins, language, bundler }) {
+  await generateTemplate({ framework, plugins, projectName, targetDir, language, bundler });
 }

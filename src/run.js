@@ -75,9 +75,10 @@ export async function run(cliOverrides = {}) {
     // 收集/合并选项：支持 CLI 覆盖
     let framework = cliOverrides.framework;
     let language = cliOverrides.language;
+    let bundler = cliOverrides.bundler;
     let plugins = Array.isArray(cliOverrides.plugins) ? [...new Set(cliOverrides.plugins)] : undefined;
 
-    if (!framework || !language || !plugins) {
+    if (!framework || !language || !plugins || !bundler) {
       // 框架
       framework = framework ?? await select({
         message: '选择技术栈',
@@ -98,6 +99,17 @@ export async function run(cliOverrides = {}) {
         initialValue: 'js',
       });
       if (isCancel(language)) throw new Error('未选择语言，流程中止');
+
+      // 打包器
+      bundler = bundler ?? await select({
+        message: '选择打包器',
+        options: [
+          { value: 'vite', label: 'Vite' },
+          { value: 'webpack', label: 'Webpack' },
+        ],
+        initialValue: 'vite',
+      });
+      if (isCancel(bundler)) throw new Error('未选择打包器，流程中止');
 
       // 插件（若未通过 CLI 指定）
       if (!plugins) {
@@ -136,7 +148,9 @@ export async function run(cliOverrides = {}) {
       }
     }
 
-    const nativeOptions = { framework, plugins: plugins ?? [], language: language ?? 'js' };
+    // 末尾附加打包器以覆盖脚本/依赖
+    const finalPlugins = [...(plugins ?? []), bundler];
+    const nativeOptions = { framework, plugins: finalPlugins, language: language ?? 'js', bundler };
 
     let proceed = true;
     if (!cliOverrides.skipConfirm) {
@@ -148,6 +162,7 @@ export async function run(cliOverrides = {}) {
           framework: nativeOptions?.framework,
           plugins: nativeOptions?.plugins ?? [],
           language: nativeOptions?.language,
+          bundler: nativeOptions?.bundler,
         }),
       });
       proceed = !(isCancel(confirmed) || confirmed === false);
@@ -163,6 +178,7 @@ export async function run(cliOverrides = {}) {
       framework: nativeOptions.framework,
       plugins: nativeOptions.plugins,
       language: nativeOptions.language,
+      bundler: nativeOptions.bundler,
     });
 
     outro(pc.green('🎉 项目创建成功，祝编码愉快！'));
@@ -172,7 +188,7 @@ export async function run(cliOverrides = {}) {
   }
 }
 
-function buildSummary({ projectName, targetDir, engine, framework, plugins, language }) {
+function buildSummary({ projectName, targetDir, engine, framework, plugins, language, bundler }) {
   const lines = [
     `项目名称：${projectName}`,
     `目标路径：${targetDir}`,
@@ -183,6 +199,7 @@ function buildSummary({ projectName, targetDir, engine, framework, plugins, lang
     const frameworkLabel = frameworkRegistry[framework]?.label ?? framework;
     lines.push(`使用模版：${frameworkLabel}`);
     if (language) lines.push(`语言：${language === 'ts' ? 'TypeScript' : 'JavaScript'}`);
+    if (bundler) lines.push(`打包器：${bundler === 'webpack' ? 'Webpack' : 'Vite'}`);
     lines.push(`启用插件：${formatPluginList(framework, plugins)}`);
   } else {
     lines.push('使用模版：由外部引擎决定');
@@ -194,7 +211,9 @@ function buildSummary({ projectName, targetDir, engine, framework, plugins, lang
 
 function formatPluginList(framework, plugins) {
   if (!plugins?.length) return '无';
-  return plugins
+  const filtered = plugins.filter((p) => p !== 'vite' && p !== 'webpack');
+  if (!filtered.length) return '无';
+  return filtered
     .map((plugin) => {
       const def = pluginRegistry[framework]?.[plugin] || pluginRegistry.common[plugin];
       return def?.meta?.label ?? plugin;

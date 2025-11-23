@@ -17,6 +17,7 @@ export function printHelp() {
   console.log('  --framework <fw>      指定框架 (react|vue)');
   console.log('  --plugins <list>      启用插件列表，逗号分隔 (如: router,lint,zustand)');
   console.log('  --language <lang>     指定语言 (js|ts)');
+  console.log('  --bundler <bundler>   指定打包器 (vite|webpack)');
 
   console.log('\n支持框架:');
   Object.entries(frameworkRegistry).forEach(([key, meta]) => {
@@ -50,8 +51,8 @@ export function printHelp() {
   });
 
   console.log('\n直达示例:');
-  console.log('  # 原生引擎：跳过交互，直接生成 React + 插件 + TS');
-  console.log('  create-web-app my-app --engine native --framework react --plugins router,lint,zustand --language ts');
+  console.log('  # 原生引擎：React + TS + Webpack + 插件');
+  console.log('  create-web-app my-app --engine native --framework react --language ts --bundler webpack --plugins router,lint,zustand');
   console.log('\n  # 外部引擎：直接调用 create-vite，并透传模板');
   console.log('  create-web-app my-app --engine vite --framework react');
   console.log('\n提示: 使用包管理器脚本运行时需加 "--" 传参，如 pnpm dev -- --engine native ...');

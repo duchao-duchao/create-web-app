@@ -18,18 +18,19 @@ title: 快速开始
   - `--framework <react|vue>` 指定框架（对 `vite` 透传为 `--template`）
   - `--plugins <list>` 逗号分隔启用插件（如 `router,lint,zustand`），仅原生引擎生效
   - `--language <js|ts>` 指定语言
+  - `--bundler <vite|webpack>` 指定打包器
 
 示例：
 
 ```bash
-# 原生引擎：跳过交互，直接生成 React + 插件 + TS
-create-web-app my-app --engine native --framework react --plugins router,lint,zustand --language ts
+# 原生：React + TS + Webpack
+create-web-app my-app --engine native --framework react --language ts --bundler webpack --plugins router,lint,zustand
 
 # 外部引擎：调用 create-vite，并透传模板为 React
 create-web-app my-app --engine vite --framework react
 
 # 在仓库内通过脚本运行需使用 "--" 传参
-pnpm dev -- --engine native --framework vue --plugins router,pinia --language ts
+pnpm dev -- --engine native --framework vue --bundler vite --plugins router,pinia --language ts
 ```
 
 ## 创建项目流程（自研模式）
