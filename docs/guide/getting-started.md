@@ -4,9 +4,9 @@ title: 快速开始
 
 ## 安装与运行
 
-- 在本仓库中开发：
-  - 运行 `pnpm dev` 启动交互式 CLI。
-  - 按提示选择引擎（自研或外部）、框架、语言（JS/TS）、插件与打包器（Vite/Webpack）。
+- 全局使用：
+  - 安装：`npm i -g dc-create-web-app` 或 `pnpm i -g dc-create-web-app`
+  - 运行：`create-web-app my-app`
 
 ## 命令行参数直达
 
