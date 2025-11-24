@@ -1,5 +1,5 @@
 {
-  "name": "create-web-app",
+  "name": "dc-create-web-app",
   "version": "0.1.0",
   "description": "多引擎可插拔的前端脚手架",
   "type": "module",
@@ -10,11 +10,15 @@
     "dist",
     "src/templates"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "dev": "node src/index.js",
     "build": "tsup && node scripts/build.mjs",
     "prepare": "pnpm build",
-    "release": "pnpm build && npm publish",
+    "release": "pnpm build && npm publish --access public",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
