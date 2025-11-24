@@ -51,11 +51,15 @@ export default {
         const entry = isReact ? (isTs ? './src/main.tsx' : './src/main.jsx') : (isTs ? './src/main.ts' : './src/main.js');
         const extReact = isTs ? "['.tsx', '.ts', '.jsx', '.js']" : "['.jsx', '.js']";
         const extVue = isTs ? "['.ts', '.js']" : "['.js']";
-        return `const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-${isVue ? "const { VueLoaderPlugin } = require('vue-loader');" : ''}
+        return `import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+${isVue ? "import { VueLoaderPlugin } from 'vue-loader';" : ''}
 
-module.exports = {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default {
   entry: '${entry}',
   output: {
     path: path.resolve(__dirname, 'dist'),
@@ -74,8 +78,8 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             presets: [
-              '@babel/preset-env',
-              '@babel/preset-react'${isTs ? ", '@babel/preset-typescript'" : ''}
+              ['@babel/preset-env', { targets: 'defaults' }],
+              ['@babel/preset-react', { runtime: 'automatic' }]${isTs ? ", '@babel/preset-typescript'" : ''}
             ],
           },
         },

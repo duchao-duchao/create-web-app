@@ -13,6 +13,15 @@ export async function generateTemplate({ framework, plugins, projectName, target
   }
 
   await fse.copy(templateDir, targetDir);
+
+  // Webpack 下清理 Vite 配置文件
+  if (bundler === 'webpack') {
+    const viteConfigJs = path.join(targetDir, 'vite.config.js');
+    const viteConfigTs = path.join(targetDir, 'vite.config.ts');
+    if (fs.existsSync(viteConfigJs)) await fs.promises.unlink(viteConfigJs);
+    if (fs.existsSync(viteConfigTs)) await fs.promises.unlink(viteConfigTs);
+  }
+
   const context = { framework, language, bundler };
   await patchPackageJson(targetDir, framework, projectName, plugins, context);
   await applyPlugins(framework, plugins, targetDir, context);
@@ -41,6 +50,20 @@ async function patchPackageJson(targetDir, framework, projectName, plugins, cont
     mergePackageFields(pkg, srcPkg, ['scripts']);
     mergePackageFields(pkg, srcPkg, ['lint-staged']);
   }
+
+  // Webpack 下清理 Vite 相关依赖
+  if (context?.bundler === 'webpack') {
+    if (pkg.devDependencies) {
+      delete pkg.devDependencies.vite;
+      if (framework === 'react') delete pkg.devDependencies['@vitejs/plugin-react'];
+      if (framework === 'vue') delete pkg.devDependencies['@vitejs/plugin-vue'];
+    }
+    // 若存在残留的 Vite 预览脚本，保持插件覆盖后的 preview；谨慎清理其它 Vite 脚本
+    if (pkg.scripts?.dev && /vite\b/.test(pkg.scripts.dev)) delete pkg.scripts.dev;
+    if (pkg.scripts?.build && /vite\b/.test(pkg.scripts.build)) delete pkg.scripts.build;
+    if (pkg.scripts?.preview && /vite\b/.test(pkg.scripts.preview)) delete pkg.scripts.preview;
+  }
+
   await fs.promises.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
 }
 
